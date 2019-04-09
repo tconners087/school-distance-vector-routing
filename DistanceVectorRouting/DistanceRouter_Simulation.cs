@@ -36,7 +36,7 @@ namespace DistanceVectorRouting
         /// <param name="d"></param>
         /// <param name="numNeighbors"></param>
         /// <param name="ADDRESS_thisNode"></param>
-        public DistanceRouter_Simulation(Dictionary<char, Dictionary<char, Node>> d, int numNeighbors, char ADDRESS_thisNode, string filename, int port): base()
+        public DistanceRouter_Simulation(Dictionary<char, Dictionary<char, Node>> d, int numNeighbors, char ADDRESS_thisNode, string filename, int port) : base()
         {
             if (port != 0)
             {
@@ -57,8 +57,8 @@ namespace DistanceVectorRouting
             snd_udpClient = new UdpClient();
             snd_udpClient.ExclusiveAddressUse = false;
             snd_udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-            
-            endPoint = new IPEndPoint(IPAddress.Any, this.port); 
+
+            endPoint = new IPEndPoint(IPAddress.Any, this.port);
             rcv_udpClient = new UdpClient();
             rcv_udpClient.ExclusiveAddressUse = false;
             rcv_udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
@@ -77,20 +77,20 @@ namespace DistanceVectorRouting
         void PrintPayload(byte[] p)
         {
             float testFloat = 0;
-            for (int i = 0; i < p.Length; )
+            for (int i = 0; i < p.Length;)
             {
                 if (p[i] == costFlag[0])
                 {
-                    if (i + 4 < p.Length /*&& Char.IsLetterOrDigit(Convert.ToChar(p[i+5]))*/)
+                    if (i + 4 < p.Length)
                     {
-                        testFloat = (BitConverter.ToSingle(p, i+1));
-                        
+                        testFloat = (BitConverter.ToSingle(p, i + 1));
+
                         Console.WriteLine(testFloat);
                         i = i + 5;
                         continue;
                     }
                 }
-                
+
                 Console.WriteLine(Convert.ToChar(p[i]));
                 if (i == 0)
                 {
@@ -113,28 +113,28 @@ namespace DistanceVectorRouting
         {
             List<byte> payload_list = new List<byte>();
             byte[] currentBytes;
-            
-            //0,1 bytes of the payload
+
+            // 0,1 bytes of the payload
             currentBytes = BitConverter.GetBytes(ADDRESS_thisNode);
             foreach (byte b in currentBytes) payload_list.Add(b);
-            
-            //2,3 bytes of the payload
+
+            // 2,3 bytes of the payload
             currentBytes = BitConverter.GetBytes(ADDRESS_destinationNode);
             foreach (byte b in currentBytes) payload_list.Add(b);
-            
-            //4,5,6,7,8,9,10,11 bytes of the payload
+
+            // 4,5,6,7,8,9,10,11 bytes of the payload
             foreach (byte b in timeStamp) payload_list.Add(b);
 
             foreach (KeyValuePair<char, Node> pair in values)
             {
-                //Dont need to tell destination cost from {this} to {this}
+                // Dont need to tell destination cost from {this} to {this}
                 if (pair.Key == ADDRESS_thisNode) continue;
 
-                //Don't tell other node cost from this node to other node. Cost is determined by transportation time if timeCost = true.
-                //If timeCost = false, Cost is determined by reading the input file associated with this instance.
+                // Don't tell other node cost from this node to other node. Cost is determined by transportation time if timeCost = true.
+                // If timeCost = false, Cost is determined by reading the input file associated with this instance.
                 if (pair.Key == ADDRESS_destinationNode) continue;
 
-                //If I route through destination node to get to other node, tell destination node my distance to other node is infinite.
+                // If I route through destination node to get to other node, tell destination node my distance to other node is infinite.
                 if (pair.Value.To != ADDRESS_destinationNode && pair.Value.Jump == ADDRESS_destinationNode)
                 {
                     currentBytes = BitConverter.GetBytes(pair.Value.To);
@@ -151,16 +151,16 @@ namespace DistanceVectorRouting
                     continue;
                 }
 
-                //Tell Destination Node the cost to get from this node to pair.Value.To node.
+                // Tell Destination Node the cost to get from this node to pair.Value.To node.
                 currentBytes = BitConverter.GetBytes(pair.Value.To);
                 foreach (byte b in currentBytes) payload_list.Add(b);
 
                 currentBytes = BitConverter.GetBytes(pair.Value.Jump);
                 foreach (byte b in currentBytes) payload_list.Add(b);
-                
+
                 currentBytes = costFlag;
                 foreach (byte b in currentBytes) payload_list.Add(b);
-                
+
                 currentBytes = BitConverter.GetBytes(pair.Value.Cost);
                 foreach (byte b in currentBytes) payload_list.Add(b);
             }
@@ -182,7 +182,7 @@ namespace DistanceVectorRouting
                     receivedBytes = rcv_udpClient.Receive(ref endPoint);
                     InterpretBytes(receivedBytes);
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
                     Console.WriteLine(e.ToString());
                 }
@@ -201,63 +201,56 @@ namespace DistanceVectorRouting
         protected override void InterpretBytes(byte[] rcvBytes)
         {
             receivedPkt = true;
-            //The first 8 bits of the packet are the address (a character) of the node that sent this packet.
+            // The first 8 bits of the packet are the address (a character) of the node that sent this packet.
             receivedNodeAddress = Convert.ToChar(rcvBytes[0]);
 
-            //If we heard our own transmission (all nodes are listening to the same port), return.
+            // If we heard our own transmission (all nodes are listening to the same port), return.
             if (receivedNodeAddress == ADDRESS_thisNode)
-            {
                 return;
-            }
-            
-            //The intended receiving node's address is at the 3rd byte of the received packet.
+
+            // The intended receiving node's address is at the 3rd byte of the received packet.
             char destinationNodeAddress = Convert.ToChar(rcvBytes[2]);
 
-            //If the packet was intended to be received by another node, return.
-            //NOTE: We must make this check because this is a simulation running 
-            //on one machine and all addresses in the simulation are merely characters.
+            // If the packet was intended to be received by another node, return.
+            // NOTE: We must make this check because this is a simulation running on one machine and all addresses in the simulation are merely characters.
             if (destinationNodeAddress != ADDRESS_thisNode)
-            {
                 return;
-            }
 
-            //The timestamp of when the received packet was made.
+            // The timestamp of when the received packet was made.
             byte[] rcvTimestamp = new byte[8];
             Array.Copy(rcvBytes, 4, rcvTimestamp, 0, 8);
 
-            //The timestamp of when the packet was received
+            // The timestamp of when the packet was received
             timeStamp = BitConverter.GetBytes(DateTime.Now.Ticks);
 
             double rcvTime = BitConverter.ToDouble(rcvTimestamp, 0);
             double time = BitConverter.ToDouble(timeStamp, 0);
-            
-            //Time is a double value of which we need the last 4 bytes (first four bytes contain all 0 bits).
+
+            // Time is a double value of which we need the last 4 bytes (first four bytes contain all 0 bits).
             time = time - rcvTime;
             timeStamp = BitConverter.GetBytes(time);
-            timeFloat = (timeStamp[4] << 3 | timeStamp[5] << 2 | timeStamp[6] << 1 | timeStamp[7])/100;
-            
-            //Flag to determine if this is the first packet we've heard from the address cointained in the packet.
+            timeFloat = (timeStamp[4] << 3 | timeStamp[5] << 2 | timeStamp[6] << 1 | timeStamp[7]) / 100;
+
+            // Flag to determine if this is the first packet we've heard from the address cointained in the packet.
             bool firstIntercept = false;
 
-            //If this is a valid address for simulation, decompose payload.
+            // If this is a valid address for simulation, decompose payload.
             if (Char.IsLetterOrDigit(receivedNodeAddress))
             {
-                //If other node is a node physically attached to this node:
+                // If other node is a node physically attached to this node:
                 if (distanceVectors.ContainsKey(receivedNodeAddress))
                 {
                     Console.WriteLine("Received broadcast pkt from {0}...", receivedNodeAddress);
-                    
-                    //If the dictionary of vectors (at this node) associated with address of received node's packet is empty:
+
+                    // If the dictionary of vectors (at this node) associated with address of received node's packet is empty:
                     if (distanceVectors[receivedNodeAddress].Count == 0)
-                    {
                         firstIntercept = true;
-                    }
 
                     Node newVector = new Node();
                     newVector.From = receivedNodeAddress;
                     float receivedCost = 0;
 
-                    //Get all vectors included in received packet.
+                    // Get all vectors included in received packet.
                     for (int i = 12; i < rcvBytes.Length;)
                     {
                         if (rcvBytes[i] == costFlag[0])
@@ -269,7 +262,7 @@ namespace DistanceVectorRouting
                         {
                             if (rcvBytes[i + 4] == costFlag[0])
                             {
-                                //Check to see that is is not a false-positive flag.
+                                // Check to see that is is not a false-positive flag.
                                 if (i + 7 < rcvBytes.Length)
                                 {
                                     receivedCost = (BitConverter.ToSingle(rcvBytes, i + 5));
@@ -282,8 +275,8 @@ namespace DistanceVectorRouting
                             Console.WriteLine(e.ToString());
                         }
                         newVector.To = Convert.ToChar(rcvBytes[i]);
-                        
-                        //Not used
+
+                        // Not used
                         if (i == 0)
                         {
                             newVector.Jump = '\0';
@@ -297,31 +290,29 @@ namespace DistanceVectorRouting
 
                         newVector.Jump = Convert.ToChar(rcvBytes[i + 2]);
 
-                        //If it's the first time hearing from this node or the node has a new node it can reach:
+                        // If it's the first time hearing from this node or the node has a new node it can reach:
                         if (firstIntercept || !distanceVectors[receivedNodeAddress].ContainsKey(newVector.To))
                         {
                             distanceVectors[receivedNodeAddress].Add(newVector.To, new Node(newVector));
                         }
                         else
                         {
-                            //Overwrite old distance vectors with fresh vectors.
+                            // Overwrite old distance vectors with fresh vectors.
                             distanceVectors[receivedNodeAddress][newVector.To] = new Node(newVector);
                         }
 
                         i = i + 4;
                     };
 
-                    //Update this node's routing table in the context of newly received packet.
+                    // Update this node's routing table in the context of newly received packet.
                     UpdateRoutingTable();
                 }
-                //If this is a node we are not physically attached to:
+                // If this is a node we are not physically attached to:
                 else
                 {
-                    //Receiving a packet from a node not currently seen as directly connected would imply
-                    //that we are directly connected to that node. However, since this is a simulation, and
-                    //all packets are being sent and received by this machine, if node distances weren't artificially
-                    //enforced, it is likely that our table would show every node connected to every other node,
-                    //and little valuable information on the correctness of the algorithm would be gained.
+                    /* 
+                    Receiving a packet from a node not currently seen as directly connected would imply that we are directly connected to that node. However, since this is a simulation, and all packets are being sent and received by this machine, if node distances weren't artificially enforced, it is likely that our table would show every node connected to every other node, and little valuable information on the correctness of the algorithm would be gained.
+                    */ 
                 }
             }
         }
@@ -331,7 +322,7 @@ namespace DistanceVectorRouting
         /// </summary>
         protected override void UpdateRoutingTable()
         {
-            //We need to maintain a table of direct costs to all nodes because it is possible that they become impossible to reach through all connected nodes.
+            // We need to maintain a table of direct costs to all nodes because it is possible that they become impossible to reach through all connected nodes.
             if (timeCost)
             {
                 if (!directCosts.ContainsKey(receivedNodeAddress)) directCosts.Add(receivedNodeAddress, timeFloat);
@@ -339,7 +330,7 @@ namespace DistanceVectorRouting
             }
             else
             {
-                //We need to reload this instance's file to check for changes to its link costs.
+                // We need to reload this instance's file to check for changes to its link costs.
                 using (StreamReader file = new StreamReader(Directory.GetCurrentDirectory() + "\\" + filename))
                 {
                     string line;
@@ -355,17 +346,17 @@ namespace DistanceVectorRouting
                 }
             }
 
-            //Print the direct costs of this node -> other directly connected nodes.
+            // Print the direct costs of this node -> other directly connected nodes.
             if (true)
             {
-                foreach (char c in new List<char>(directCosts.Keys)) Console.WriteLine("Cost to travel directly from {0} to {1}: {2}", ADDRESS_thisNode, c, directCosts[c]);
+                foreach (char c in new List<char>(directCosts.Keys)) 
+                    Console.WriteLine("Cost to travel directly from {0} to {1}: {2}", ADDRESS_thisNode, c, directCosts[c]);
             }
 
-            //Update distace vector from this node to the node that just sent the packet that triggered this table update.
+            // Update distace vector from this node to the node that just sent the packet that triggered this table update.
             if (timeCost)
             {
-                if (distanceVectors[ADDRESS_thisNode][receivedNodeAddress].Cost > timeFloat ||
-                    (distanceVectors[ADDRESS_thisNode][receivedNodeAddress].Jump == receivedNodeAddress && distanceVectors[ADDRESS_thisNode][receivedNodeAddress].To == receivedNodeAddress))
+                if (distanceVectors[ADDRESS_thisNode][receivedNodeAddress].Cost > timeFloat || (distanceVectors[ADDRESS_thisNode][receivedNodeAddress].Jump == receivedNodeAddress && distanceVectors[ADDRESS_thisNode][receivedNodeAddress].To == receivedNodeAddress))
                 {
                     distanceVectors[ADDRESS_thisNode][receivedNodeAddress] = new Node()
                     {
@@ -394,31 +385,31 @@ namespace DistanceVectorRouting
                 }
             }
 
-            //Reset the cost of current routes to reflect the possible change in link costs from this node -> other nodes.
-            foreach(char c in new List<char>(distanceVectors[ADDRESS_thisNode].Keys))
-            {   
-                //If going through a node to get to another node:
+            // Reset the cost of current routes to reflect the possible change in link costs from this node -> other nodes.
+            foreach (char c in new List<char>(distanceVectors[ADDRESS_thisNode].Keys))
+            {
+                // If going through a node to get to another node:
                 if (distanceVectors[ADDRESS_thisNode][c].To != distanceVectors[ADDRESS_thisNode][c].Jump)
                 {
                     char j = distanceVectors[ADDRESS_thisNode][c].Jump;
                     char t = distanceVectors[ADDRESS_thisNode][c].To;
                     if (distanceVectors.ContainsKey(j))
                     {
-                        //Updates *current* costs to reflect routing information received by received packtet.
+                        // Updates *current* costs to reflect routing information received by received packtet.
                         distanceVectors[ADDRESS_thisNode][c].Cost = distanceVectors[ADDRESS_thisNode][j].Cost + distanceVectors[j][t].Cost;
                     }
                 }
             }
 
-            //Check distance vectors of neighboring nodes; if new node is discovered -> add new node and to our routing table.
+            // Check distance vectors of neighboring nodes; if new node is discovered -> add new node and to our routing table.
             foreach (KeyValuePair<char, Dictionary<char, Node>> row in distanceVectors)
             {
-                //We don't update this node's routing table based on its own vectors
+                // We don't update this node's routing table based on its own vectors
                 if (row.Key == ADDRESS_thisNode) continue;
-                
+
                 foreach (KeyValuePair<char, Node> vector in row.Value)
                 {
-                    //If we've discovered a new node reachable from a node, add it to the collection of nodes we can reach from this node.
+                    // If we've discovered a new node reachable from a node, add it to the collection of nodes we can reach from this node.
                     if (!distanceVectors[ADDRESS_thisNode].ContainsKey(vector.Key) && vector.Key != ADDRESS_thisNode && distanceVectors[ADDRESS_thisNode].ContainsKey(vector.Value.From))
                     {
                         distanceVectors[ADDRESS_thisNode].Add(vector.Key, new Node()
@@ -428,22 +419,21 @@ namespace DistanceVectorRouting
                             Jump = vector.Value.From,
                             Cost = vector.Value.Cost + distanceVectors[ADDRESS_thisNode][vector.Value.From].Cost
                         });
-                    } 
+                    }
                 }
             }
-            
-            //Final pass to fully update all routing information for this node.
-            //For every node reachable from this node:
-            foreach(char c in new List<char>(distanceVectors[ADDRESS_thisNode].Keys))
+
+            // Final pass to fully update all routing information for this node.
+            // For every node reachable from this node:
+            foreach (char c in new List<char>(distanceVectors[ADDRESS_thisNode].Keys))
             {
-                //For every node directly connected to this node:
+                // For every node directly connected to this node:
                 foreach (KeyValuePair<char, Dictionary<char, Node>> row in distanceVectors)
                 {
-                    //Don't update this node's routing table based on its own vectors.
+                    // Don't update this node's routing table based on its own vectors.
                     if (row.Key == ADDRESS_thisNode) continue;
 
-                    //if current node {c} (reachable from {this}) is reachable from {row} node AND
-                    //New_Cost({this} -> {row} -> {c}) < Current_Cost({this} -> {c}) 
+                    // if current node {c} (reachable from {this}) is reachable from {row} node AND New_Cost({this} -> {row} -> {c}) < Current_Cost({this} -> {c}) 
                     try
                     {
                         if (row.Value.ContainsKey(c) && row.Value[c].Cost != infinity)
@@ -451,7 +441,7 @@ namespace DistanceVectorRouting
                             if (distanceVectors[ADDRESS_thisNode][row.Key].Cost != infinity &&
                                 ((distanceVectors[ADDRESS_thisNode][row.Key].Cost + row.Value[c].Cost) < distanceVectors[ADDRESS_thisNode][c].Cost))
                             {
-                                //If New_Cost({this} -> {row} -> {c}) < Current_Cost({this} -> {c}), we change our route.
+                                // If New_Cost({this} -> {row} -> {c}) < Current_Cost({this} -> {c}), we change our route.
                                 distanceVectors[ADDRESS_thisNode][c] = new Node()
                                 {
                                     From = ADDRESS_thisNode,
@@ -462,7 +452,7 @@ namespace DistanceVectorRouting
                             }
                         }
 
-                        //if we can no longer route to a node through any other node, route directly to that node (if possible).
+                        // if we can no longer route to a node through any other node, route directly to that node (if possible).
                         if (distanceVectors[ADDRESS_thisNode][c].Cost == infinity)
                         {
                             if (directCosts.ContainsKey(c) && (directCosts[c] < distanceVectors[ADDRESS_thisNode][c].Cost) || distanceVectors[ADDRESS_thisNode][c].Cost == infinity)
@@ -477,7 +467,7 @@ namespace DistanceVectorRouting
                             }
                         }
                     }
-                    catch(Exception e)
+                    catch (Exception e)
                     {
                         Console.WriteLine(e);
                     }
@@ -519,25 +509,25 @@ namespace DistanceVectorRouting
         /// <param name="e"></param>
         private void TimedBroadcast(object source, ElapsedEventArgs e)
         {
-            //Update routing table to reflect any cost changes
+            // Update routing table to reflect any cost changes
             receivedPkt = false;
             UpdateRoutingTable();
-            
-            //Broadcast Distance Vectors to neighboring nodes.
+
+            // Broadcast Distance Vectors to neighboring nodes.
             Console.WriteLine("Broadcasting Distance Vectors... \n");
-            
-            //Timestamp experimentation for calculating Cost.
+
+            // Timestamp experimentation for calculating Cost.
             byte[] byteTime = BitConverter.GetBytes(DateTime.Now.Ticks);
 
             if (timer != null) timer.Stop();
 
-            //Broadcast to each neighboring node connected to this node.
+            // Broadcast to each neighboring node connected to this node.
             foreach (char c in distanceVectors[ADDRESS_thisNode].Keys)
             {
                 byte[] payload = ConstructPayload(distanceVectors[ADDRESS_thisNode], c, byteTime);
                 snd_udpClient.Send(payload, payload.Length, brdcstEndPoint);
             }
-            
+
             Thread.Sleep(10);
             timer.Start();
         }
