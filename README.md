@@ -1,6 +1,7 @@
 # school-distance-vector-routing
 
 ITCS - 6166: Project 03
+
 Author: Taylor Conners
 
 ## Explanation
@@ -8,6 +9,8 @@ Author: Taylor Conners
 This is a simulation of the Distance Vector routing protocol designed to run on one machine, but it will work across multiple computers, provided all of them are free to listen to a specified port, all of them are  up-to-date with Microsoft's .NET core, and all of them follow the input file specifications.
 
 ## To Run
+
+**USAGE: dotnet run** <file_path> <port_num>
 
 This project requires .NET core, which can be installed from: https://www.microsoft.com/net/learn/get-started/windows
 
