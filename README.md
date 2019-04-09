@@ -10,7 +10,7 @@ This is a simulation of the Distance Vector routing protocol designed to run on 
 
 ## To Run
 
-**USAGE: dotnet run** <file_path> <port_num>
+**USAGE:** dotnet run <file_path> <port_num>
 
 This project requires .NET core, which can be installed from: https://www.microsoft.com/net/learn/get-started/windows
 
